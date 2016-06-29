@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <plugin xmlns="http://www.phonegap.com/ns/plugins/1.0"
         id="com.commontime.cordova.secure-settings"
-        version="1.0.0">
+        version="1.0.1">
 
   <name>Secure Settings</name>
   <description>CommonTime secure settings plugin.</description>
@@ -31,4 +31,14 @@
     <framework src="Security.framewwork"/>
   </platform>
 
+  <platform name="wp8">
+    <config-file target="config.xml" parent="/*">
+      <feature name="SecureSettings">
+        <param name="wp-package" value="SecureSettingsPlugin" />
+      </feature>
+    </config-file>
+
+    <source-file src="src/wp8/SecureSettingsPlugin.cs"/>
+	<framework src="src/wp8/Newtonsoft.Json.dll" custom="true" />	
+  </platform>
 </plugin>
