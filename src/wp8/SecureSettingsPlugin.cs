@@ -49,6 +49,8 @@ namespace WPCordovaClassLib.Cordova.Commands
           IsolatedStorageSettings.ApplicationSettings[name] = value;
         }
 
+        IsolatedStorageSettings.ApplicationSettings.Save();
+
         DispatchCommandResult(new PluginResult(PluginResult.Status.OK, value), callbackId);
       }
       catch (Exception e)
