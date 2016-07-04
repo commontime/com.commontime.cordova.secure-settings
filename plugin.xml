@@ -28,7 +28,7 @@
     <header-file src="src/ios/UICKeyChainStore.h"/>
     <source-file src="src/ios/UICKeyChainStore.m"/>
 
-    <framework src="Security.framewwork"/>
+    <framework src="Security.framework"/>
   </platform>
 
   <platform name="wp8">
@@ -39,6 +39,6 @@
     </config-file>
 
     <source-file src="src/wp8/SecureSettingsPlugin.cs"/>
-	<framework src="src/wp8/Newtonsoft.Json.dll" custom="true" />	
+	<framework src="src/wp8/Newtonsoft.Json.dll" custom="true" />
   </platform>
 </plugin>
