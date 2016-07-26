@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <plugin xmlns="http://www.phonegap.com/ns/plugins/1.0"
         id="com.commontime.cordova.secure-settings"
-        version="1.0.1">
+        version="1.0.2">
 
   <name>Secure Settings</name>
   <description>CommonTime secure settings plugin.</description>
@@ -13,6 +13,20 @@
   <js-module src="www/securesettings.js" name="SecureSettings">
     <clobbers target="plugins.securesettings" />
   </js-module>
+
+  <platform name="android">
+
+    <config-file target="config.xml" parent="/*">
+      <feature name="SecureSettings">
+        <param name="android-package" value="com.commontime.plugin.SecureSettings"/>
+        <param name="onload" value="true" />
+      </feature>
+    </config-file>
+
+    <source-file src="src/android/SecureSettings.java" target-dir="src/com/commontime/plugin/"/>
+    <source-file src="src/android/GaryEncryptors.java" target-dir="src/com/commontime/plugin/"/>
+    <source-file src="src/android/Encryptor.java" target-dir="src/com/commontime/plugin/"/>
+  </platform>
 
   <platform name="ios">
     <config-file target="config.xml" parent="/*">
