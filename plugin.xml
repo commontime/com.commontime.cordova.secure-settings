@@ -24,7 +24,7 @@
     </config-file>
 
     <source-file src="src/android/SecureSettings.java" target-dir="src/com/commontime/plugin/"/>
-    <source-file src="src/android/GaryEncryptors.java" target-dir="src/com/commontime/plugin/"/>
+    <source-file src="src/android/GaryEncryptor.java" target-dir="src/com/commontime/plugin/"/>
     <source-file src="src/android/Encryptor.java" target-dir="src/com/commontime/plugin/"/>
   </platform>
 
