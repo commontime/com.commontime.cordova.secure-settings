@@ -15,6 +15,7 @@ import org.json.JSONException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -22,6 +23,7 @@ import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Calendar;
 
@@ -431,8 +433,7 @@ public class SecureSettings extends CordovaPlugin {
 
     private boolean useKeyStore()
     {
-        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP
-                || Build.VERSION.SDK_INT == Build.VERSION_CODES.M)
+        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP)
             return false;
         else
             return true;
