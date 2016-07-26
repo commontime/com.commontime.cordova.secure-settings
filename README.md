@@ -2,7 +2,7 @@
 
 The Secure Settings plugin provides two related facilities:
 
-* to store name/value string pairs inside the device's secure store (e.g., KeyChain on iOS and OS X)
+* to store name/value string pairs inside the device's secure store (KeyChain on iOS and OS X, KeyStore on Android)
 * to generate and securely store cryptographic keys
 
 ## Calls
