@@ -18,6 +18,7 @@ import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
+import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -204,14 +205,16 @@ public class SecureSettings extends CordovaPlugin {
     {
         try
         {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+            KeyPairGenerator generator = KeyPairGenerator .getInstance(KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore");
+            if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M)
             {
-                KeyPairGenerator kpg = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore");
-
-                kpg.initialize(new KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_SIGN | KeyProperties.PURPOSE_VERIFY)
-                    .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-                    .build());
-                return kpg.generateKeyPair();
+                KeyGenParameterSpec spec = new  KeyGenParameterSpec.Builder(
+                        alias,
+                        KeyProperties.PURPOSE_DECRYPT | KeyProperties.PURPOSE_ENCRYPT )
+                        .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
+                        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
+                        .build();
+                generator.initialize(spec);
             }
             else
             {
@@ -225,11 +228,9 @@ public class SecureSettings extends CordovaPlugin {
                         .setStartDate(start.getTime())
                         .setEndDate(end.getTime())
                         .build();
-                KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA", "AndroidKeyStore");
                 generator.initialize(spec);
-
-                return generator.generateKeyPair();
             }
+            return generator.generateKeyPair();
         }
         catch(Exception e)
         {
@@ -309,7 +310,13 @@ public class SecureSettings extends CordovaPlugin {
             if(publicKey == null)
                 return null;
 
-            Cipher input = Cipher.getInstance("RSA/ECB/PKCS1Padding", "AndroidOpenSSL");
+            Cipher input;
+
+            if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M)
+                input =  Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+            else
+                input = Cipher.getInstance("RSA/ECB/PKCS1Padding", "AndroidOpenSSL");
+
             input.init(Cipher.ENCRYPT_MODE, publicKey);
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -348,23 +355,28 @@ public class SecureSettings extends CordovaPlugin {
             if(ks == null || sharedPref == null)
                 throw new Exception();
 
-            RSAPrivateKey privateKey = null;
+            PrivateKey privateKey = null;
 
             if(newKeyPair != null)
             {
-                privateKey = (RSAPrivateKey) newKeyPair.getPrivate();
+                privateKey = newKeyPair.getPrivate();
                 newKeyPair = null;
             }
             else
             {
                 KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) ks.getEntry(alias, null);
-                privateKey = (RSAPrivateKey) privateKeyEntry.getPrivateKey();
+                privateKey = privateKeyEntry.getPrivateKey();
             }
 
             if(privateKey == null)
                 return null;
 
-            Cipher output = Cipher.getInstance("RSA/ECB/PKCS1Padding", "AndroidOpenSSL");
+            Cipher output;
+            if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M)
+                output =  Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+            else
+                output =  Cipher.getInstance("RSA/ECB/PKCS1Padding",  "AndroidOpenSSL");
+
             output.init(Cipher.DECRYPT_MODE, privateKey);
 
             CipherInputStream cipherInputStream = new CipherInputStream(
@@ -419,11 +431,11 @@ public class SecureSettings extends CordovaPlugin {
 
     private boolean useKeyStore()
     {
-        if(Build.VERSION.SDK_INT == Build.VERSION_CODES.LOLLIPOP
-                || Build.VERSION.SDK_INT == Build.VERSION_CODES.LOLLIPOP_MR1)
-            return true;
-        else
+        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP
+                || Build.VERSION.SDK_INT == Build.VERSION_CODES.M)
             return false;
+        else
+            return true;
     }
 
     static String hexStringFromBytes(byte[] bytes, int length)
