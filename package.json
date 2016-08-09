@@ -1,0 +1,29 @@
+{
+  "name": "com.commontime.cordova.securesettings",
+  "version": "1.0.0",
+  "description": "Commontime cordova secure settings plugin.",
+  "cordova": {
+    "id": "com.commontime.cordova.securesettings",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/commontime/com.commontime.cordova.secure-settings.git"
+  },
+  "keywords": [
+    "cordova",
+    "secure settings",
+    "commontime",
+    "cordova-android"
+  ],
+  "engines": [
+    {
+      "name": "cordova",
+      "version": ">=3.0.0"
+    }
+  ],
+  "author": "Commontime Ltd"
+}
