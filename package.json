@@ -1,6 +1,6 @@
 {
   "name": "com.commontime.cordova.securesettings",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Commontime cordova secure settings plugin.",
   "cordova": {
     "id": "com.commontime.cordova.securesettings",

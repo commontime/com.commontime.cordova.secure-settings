@@ -23,6 +23,7 @@ import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -30,6 +31,8 @@ import java.util.Calendar;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
 import javax.security.auth.x500.X500Principal;
 
 public class SecureSettings extends CordovaPlugin {
@@ -314,12 +317,14 @@ public class SecureSettings extends CordovaPlugin {
 
             Cipher input;
 
-            if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M)
-                input =  Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
-            else
+            if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                OAEPParameterSpec sp = new OAEPParameterSpec("SHA-256", "MGF1", new MGF1ParameterSpec("SHA-1"), PSource.PSpecified.DEFAULT);
+                input = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+                input.init(Cipher.ENCRYPT_MODE, publicKey, sp);
+            } else {
                 input = Cipher.getInstance("RSA/ECB/PKCS1Padding", "AndroidOpenSSL");
-
-            input.init(Cipher.ENCRYPT_MODE, publicKey);
+                input.init(Cipher.ENCRYPT_MODE, publicKey);
+            }
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             CipherOutputStream cipherOutputStream = new CipherOutputStream(
@@ -374,12 +379,15 @@ public class SecureSettings extends CordovaPlugin {
                 return null;
 
             Cipher output;
-            if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M)
-                output =  Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
-            else
-                output =  Cipher.getInstance("RSA/ECB/PKCS1Padding",  "AndroidOpenSSL");
 
-            output.init(Cipher.DECRYPT_MODE, privateKey);
+            if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                OAEPParameterSpec sp = new OAEPParameterSpec("SHA-256", "MGF1", new MGF1ParameterSpec("SHA-1"), PSource.PSpecified.DEFAULT);
+                output = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+                output.init(Cipher.DECRYPT_MODE, privateKey, sp);
+            } else {
+                output = Cipher.getInstance("RSA/ECB/PKCS1Padding", "AndroidOpenSSL");
+                output.init(Cipher.DECRYPT_MODE, privateKey);
+            }
 
             CipherInputStream cipherInputStream = new CipherInputStream(
                     new ByteArrayInputStream(Base64.decode(value, Base64.DEFAULT)), output);
