@@ -2,6 +2,8 @@ package com.commontime.plugin;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.os.Build;
 import android.security.KeyPairGeneratorSpec;
 import android.security.keystore.KeyGenParameterSpec;
@@ -487,7 +489,7 @@ public class SecureSettings extends CordovaPlugin {
 
     private void setLocale(final Locale locale) {
         Locale.setDefault(locale);
-        final Resources resources = context.getResources();
+        final Resources resources = cordova.getActivity().getResources();
         final Configuration config = resources.getConfiguration();
         config.locale = locale;
         resources.updateConfiguration(config, resources.getDisplayMetrics());
