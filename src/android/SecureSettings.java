@@ -213,8 +213,9 @@ public class SecureSettings extends CordovaPlugin {
     {
         try
         {
+            KeyPair kp = null;
             KeyPairGenerator generator = KeyPairGenerator .getInstance(KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore");
-            if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M)
+            if(android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.M)
             {
                 KeyGenParameterSpec spec = new  KeyGenParameterSpec.Builder(
                         alias,
@@ -223,6 +224,7 @@ public class SecureSettings extends CordovaPlugin {
                         .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
                         .build();
                 generator.initialize(spec);
+                kp = generator.generateKeyPair();
             }
             else
             {
@@ -239,12 +241,14 @@ public class SecureSettings extends CordovaPlugin {
                         .setEndDate(end.getTime())
                         .build();
                 generator.initialize(spec);
+                kp = generator.generateKeyPair();
                 setLocale(localeBeforeFakingEnglishLocale);
             }
-            return generator.generateKeyPair();
+            return kp;
         }
         catch(Exception e)
         {
+            e.printStackTrace();
             return null;
         }
     }
