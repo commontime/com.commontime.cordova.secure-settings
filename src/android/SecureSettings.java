@@ -223,6 +223,8 @@ public class SecureSettings extends CordovaPlugin {
             }
             else
             {
+                final Locale localeBeforeFakingEnglishLocale = Locale.getDefault();
+                setFakeEnglishLocale();
                 Calendar start = Calendar.getInstance();
                 Calendar end = Calendar.getInstance();
                 end.add(Calendar.YEAR, 1);
@@ -234,6 +236,7 @@ public class SecureSettings extends CordovaPlugin {
                         .setEndDate(end.getTime())
                         .build();
                 generator.initialize(spec);
+                setLocale(localeBeforeFakingEnglishLocale);
             }
             return generator.generateKeyPair();
         }
@@ -471,5 +474,21 @@ public class SecureSettings extends CordovaPlugin {
         {
             return null;
         }
+    }
+
+    /**
+     * Workaround for known date parsing issue in KeyPairGenerator class
+     * https://issuetracker.google.com/issues/37095309
+     */
+    private void setFakeEnglishLocale() {
+        setLocale(Locale.ENGLISH);
+    }
+
+    private void setLocale(final Locale locale) {
+        Locale.setDefault(locale);
+        final Resources resources = context.getResources();
+        final Configuration config = resources.getConfiguration();
+        config.locale = locale;
+        resources.updateConfiguration(config, resources.getDisplayMetrics());
     }
 }
