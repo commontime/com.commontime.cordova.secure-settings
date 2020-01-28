@@ -85,7 +85,6 @@ public class SecureSettings extends CordovaPlugin {
             }
 
             get(callbackContext, name);
-            semaphore.release();
         }
         else if(action.equals("set"))
         {
@@ -107,15 +106,14 @@ public class SecureSettings extends CordovaPlugin {
             }
 
             set(callbackContext, name, value);
-            semaphore.release();
         }
         else if(action.equals("createCryptographicKey"))
         {
             if(data.length() < 1)
             {
                 callbackContext.error("Incorrect number of arguments.");
-                return true;
                 semaphore.release();
+                return true;
             }
 
             final int numBits  = data.getInt(0);
@@ -123,14 +121,14 @@ public class SecureSettings extends CordovaPlugin {
             if (numBits <= 0 || numBits % 8 != 0)
             {
                 callbackContext.error("Bad length");
-                return true;
                 semaphore.release();
+                return true;
             }
 
             createCryptographicKey(callbackContext, numBits);
-            semaphore.release();
         }
 
+        semaphore.release();
         return true;
     }
 
