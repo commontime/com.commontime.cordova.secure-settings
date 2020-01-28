@@ -9,27 +9,28 @@ import android.security.KeyPairGeneratorSpec;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
+import android.util.Log;
 
-import org.apache.cordova.*;
+import org.apache.cordova.CallbackContext;
+import org.apache.cordova.CordovaPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
-import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
-import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.MGF1ParameterSpec;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Locale;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -46,9 +47,22 @@ public class SecureSettings extends CordovaPlugin {
     private SharedPreferences sharedPref;
     private KeyPair newKeyPair;
 
+    private static Semaphore semaphore = new Semaphore(1);
+
     @Override
     public boolean execute(String action, final JSONArray data, final CallbackContext callbackContext) throws JSONException
     {
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            Log.e("SECURE", "Serious Semaphore error: " + e);
+            e.printStackTrace();
+            return true;
+        }
+
+        ks = null;
+        sharedPref = null;
+
         setKeyStoreInstanceIfRequired();
         setSharedPrefsIfRequired();
 
@@ -57,6 +71,7 @@ public class SecureSettings extends CordovaPlugin {
             if(data.length() < 1)
             {
                 callbackContext.error("Incorrect number of arguments.");
+                semaphore.release();
                 return true;
             }
 
@@ -65,21 +80,19 @@ public class SecureSettings extends CordovaPlugin {
             if(name == null)
             {
                 callbackContext.error("Name must be a string.");
+                semaphore.release();
                 return true;
             }
 
-            cordova.getThreadPool().execute(new Runnable() {
-                @Override
-                public void run() {
-                    get(callbackContext, name);
-                }
-            });
+            get(callbackContext, name);
+            semaphore.release();
         }
         else if(action.equals("set"))
         {
             if(data.length() < 2)
             {
                 callbackContext.error("Incorrect number of arguments.");
+                semaphore.release();
                 return true;
             }
 
@@ -89,15 +102,12 @@ public class SecureSettings extends CordovaPlugin {
             if(name == null || value == null)
             {
                 callbackContext.error("Name and value must be a string.");
+                semaphore.release();
                 return true;
             }
 
-            cordova.getThreadPool().execute(new Runnable() {
-                @Override
-                public void run() {
-                    set(callbackContext, name, value);
-                }
-            });
+            set(callbackContext, name, value);
+            semaphore.release();
         }
         else if(action.equals("createCryptographicKey"))
         {
@@ -105,6 +115,7 @@ public class SecureSettings extends CordovaPlugin {
             {
                 callbackContext.error("Incorrect number of arguments.");
                 return true;
+                semaphore.release();
             }
 
             final int numBits  = data.getInt(0);
@@ -113,14 +124,11 @@ public class SecureSettings extends CordovaPlugin {
             {
                 callbackContext.error("Bad length");
                 return true;
+                semaphore.release();
             }
 
-            cordova.getThreadPool().execute(new Runnable() {
-                @Override
-                public void run() {
-                    createCryptographicKey(callbackContext, numBits);
-                }
-            });
+            createCryptographicKey(callbackContext, numBits);
+            semaphore.release();
         }
 
         return true;
@@ -135,9 +143,9 @@ public class SecureSettings extends CordovaPlugin {
 
             if(useKeyStore())
             {
-                KeyStore.Entry entry = ks.getEntry(alias, null);
+                PrivateKey privateKey = (PrivateKey) ks.getKey(alias, null);
 
-                if (!(entry instanceof KeyStore.PrivateKeyEntry)) {
+                if (privateKey == null) {
                     callbackContext.success(0);
                     return;
                 }
@@ -215,7 +223,7 @@ public class SecureSettings extends CordovaPlugin {
         {
             KeyPair kp = null;
             KeyPairGenerator generator = KeyPairGenerator .getInstance(KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore");
-            if(android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.M)
+            if(Build.VERSION.SDK_INT > Build.VERSION_CODES.M)
             {
                 KeyGenParameterSpec spec = new  KeyGenParameterSpec.Builder(
                         alias,
@@ -318,8 +326,7 @@ public class SecureSettings extends CordovaPlugin {
             }
             else
             {
-                KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) ks.getEntry(alias, null);
-                publicKey = (RSAPublicKey) privateKeyEntry.getCertificate().getPublicKey();
+                publicKey = (RSAPublicKey) ks.getCertificate(alias).getPublicKey();
             }
 
             if(publicKey == null)
@@ -327,7 +334,7 @@ public class SecureSettings extends CordovaPlugin {
 
             Cipher input;
 
-            if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 OAEPParameterSpec sp = new OAEPParameterSpec("SHA-256", "MGF1", new MGF1ParameterSpec("SHA-1"), PSource.PSpecified.DEFAULT);
                 input = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
                 input.init(Cipher.ENCRYPT_MODE, publicKey, sp);
@@ -381,8 +388,7 @@ public class SecureSettings extends CordovaPlugin {
             }
             else
             {
-                KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) ks.getEntry(alias, null);
-                privateKey = privateKeyEntry.getPrivateKey();
+                privateKey = (PrivateKey) ks.getKey(alias, null);
             }
 
             if(privateKey == null)
@@ -390,8 +396,8 @@ public class SecureSettings extends CordovaPlugin {
 
             Cipher output;
 
-            if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                OAEPParameterSpec sp = new OAEPParameterSpec("SHA-256", "MGF1", new MGF1ParameterSpec("SHA-1"), PSource.PSpecified.DEFAULT);
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                OAEPParameterSpec sp = new OAEPParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA1, PSource.PSpecified.DEFAULT);
                 output = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
                 output.init(Cipher.DECRYPT_MODE, privateKey, sp);
             } else {
