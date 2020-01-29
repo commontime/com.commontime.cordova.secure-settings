@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 
 import javax.crypto.Cipher;
@@ -47,88 +49,90 @@ public class SecureSettings extends CordovaPlugin {
     private SharedPreferences sharedPref;
     private KeyPair newKeyPair;
 
-    private static Semaphore semaphore = new Semaphore(1);
+    private ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
     public boolean execute(String action, final JSONArray data, final CallbackContext callbackContext) throws JSONException
     {
-        try {
-            semaphore.acquire();
-        } catch (InterruptedException e) {
-            Log.e("SECURE", "Serious Semaphore error: " + e);
-            e.printStackTrace();
-            return true;
+        System.out.println("action: " + action + " " + data.getString(0));
+
+        if ( !(action.equals("get") || action.equals("set") || action.equals("createCryptographicKey"))) {
+            return false;
         }
 
-        ks = null;
-        sharedPref = null;
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
 
-        setKeyStoreInstanceIfRequired();
-        setSharedPrefsIfRequired();
+                try {
 
-        if(action.equals("get"))
-        {
-            if(data.length() < 1)
-            {
-                callbackContext.error("Incorrect number of arguments.");
-                semaphore.release();
-                return true;
+                    System.out.println("exec: " + action + " " + data.getString(0));
+
+                    setKeyStoreInstanceIfRequired();
+                    setSharedPrefsIfRequired();
+
+                    if(action.equals("get"))
+                    {
+                        if(data.length() < 1)
+                        {
+                            callbackContext.error("Incorrect number of arguments.");
+                            return;
+                        }
+
+                        final String name = data.getString(0);
+
+                        if(name == null)
+                        {
+                            callbackContext.error("Name must be a string.");
+                            return;
+                        }
+
+                        get(callbackContext, name);
+                    }
+                    else if(action.equals("set"))
+                    {
+                        if(data.length() < 2)
+                        {
+                            callbackContext.error("Incorrect number of arguments.");
+                            return;
+                        }
+
+                        final String name = data.getString(0);
+                        final String value = data.getString(1);
+
+                        if(name == null || value == null)
+                        {
+                            callbackContext.error("Name and value must be a string.");
+                            return;
+                        }
+
+                        set(callbackContext, name, value);
+                    }
+                    else if(action.equals("createCryptographicKey"))
+                    {
+                        if(data.length() < 1)
+                        {
+                            callbackContext.error("Incorrect number of arguments.");
+                            return;
+                        }
+
+                        final int numBits  = data.getInt(0);
+
+                        if (numBits <= 0 || numBits % 8 != 0)
+                        {
+                            callbackContext.error("Bad length");
+                            return;
+                        }
+
+                        createCryptographicKey(callbackContext, numBits);
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    callbackContext.error("Bad parameters: " + e);
+                }
             }
+        });
 
-            final String name = data.getString(0);
-
-            if(name == null)
-            {
-                callbackContext.error("Name must be a string.");
-                semaphore.release();
-                return true;
-            }
-
-            get(callbackContext, name);
-        }
-        else if(action.equals("set"))
-        {
-            if(data.length() < 2)
-            {
-                callbackContext.error("Incorrect number of arguments.");
-                semaphore.release();
-                return true;
-            }
-
-            final String name = data.getString(0);
-            final String value = data.getString(1);
-
-            if(name == null || value == null)
-            {
-                callbackContext.error("Name and value must be a string.");
-                semaphore.release();
-                return true;
-            }
-
-            set(callbackContext, name, value);
-        }
-        else if(action.equals("createCryptographicKey"))
-        {
-            if(data.length() < 1)
-            {
-                callbackContext.error("Incorrect number of arguments.");
-                semaphore.release();
-                return true;
-            }
-
-            final int numBits  = data.getInt(0);
-
-            if (numBits <= 0 || numBits % 8 != 0)
-            {
-                callbackContext.error("Bad length");
-                semaphore.release();
-                return true;
-            }
-
-            createCryptographicKey(callbackContext, numBits);
-        }
-
-        semaphore.release();
         return true;
     }
 
